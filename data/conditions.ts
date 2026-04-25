@@ -38,7 +38,7 @@ export const Conditions: import('../sim/dex-conditions').ConditionDataTable = {
 		},
 		onBeforeMovePriority: 1,
 		onBeforeMove(pokemon) {
-			if (this.randomChance(1, 4)) {
+			if (this.randomChance(1, 8)) {
 				this.add('cant', pokemon, 'par');
 				return false;
 			}
@@ -80,44 +80,22 @@ export const Conditions: import('../sim/dex-conditions').ConditionDataTable = {
 			return false;
 		},
 	},
-	frz: {
-		name: 'frz',
+	frb: {
+		name: 'frb',
 		effectType: 'Status',
 		onStart(target, source, sourceEffect) {
-			if (sourceEffect && sourceEffect.effectType === 'Ability') {
-				this.add('-status', target, 'frz', '[from] ability: ' + sourceEffect.name, `[of] ${source}`);
+			if (sourceEffect && sourceEffect.id === 'freezingorb') {
+				this.add('-status', target, 'frb', '[from] item: Freezing Orb');
+			} else if (sourceEffect && sourceEffect.effectType === 'Ability') {
+				this.add('-status', target, 'frb', '[from] ability: ' + sourceEffect.name, `[of] ${source}`);
 			} else {
-				this.add('-status', target, 'frz');
-			}
-			if (target.species.name === 'Shaymin-Sky' && target.baseSpecies.baseSpecies === 'Shaymin') {
-				target.formeChange('Shaymin', this.effect, true);
+				this.add('-status', target, 'frb');
 			}
 		},
-		onBeforeMovePriority: 10,
-		onBeforeMove(pokemon, target, move) {
-			if (move.flags['defrost'] && !(move.id === 'burnup' && !pokemon.hasType('Fire'))) return;
-			if (this.randomChance(1, 5)) {
-				pokemon.cureStatus();
-				return;
-			}
-			this.add('cant', pokemon, 'frz');
-			return false;
-		},
-		onModifyMove(move, pokemon) {
-			if (move.flags['defrost']) {
-				this.add('-curestatus', pokemon, 'frz', `[from] move: ${move}`);
-				pokemon.clearStatus();
-			}
-		},
-		onAfterMoveSecondary(target, source, move) {
-			if (move.thawsTarget) {
-				target.cureStatus();
-			}
-		},
-		onDamagingHit(damage, target, source, move) {
-			if (move.type === 'Fire' && move.category !== 'Status' && move.id !== 'polarflare') {
-				target.cureStatus();
-			}
+		// Damage reduction is handled directly in the sim/battle.js damage function
+		onResidualOrder: 10,
+		onResidual(pokemon) {
+			this.damage(pokemon.baseMaxhp / 16);
 		},
 	},
 	psn: {
@@ -484,13 +462,21 @@ export const Conditions: import('../sim/dex-conditions').ConditionDataTable = {
 			return 5;
 		},
 		onWeatherModifyDamage(damage, attacker, defender, move) {
-			if (defender.effectiveWeather() !== 'raindance') return;
+			if (defender.hasItem('utilityumbrella')) return;
 			if (move.type === 'Water') {
 				this.debug('rain water boost');
 				return this.chainModify(1.5);
 			}
 			if (move.type === 'Fire') {
 				this.debug('rain fire suppress');
+				return this.chainModify(0.5);
+			}
+			if (move.id === 'crystalbeam' && !attacker.hasItem('utilityumbrella')) {
+				this.debug('Sunny Day Hydro Steam boost');
+				return this.chainModify(0.5);
+			}
+			if (move.id === 'lightray' && !attacker.hasItem('utilityumbrella')) {
+				this.debug('Sunny Day Hydro Steam boost');
 				return this.chainModify(0.5);
 			}
 		},
@@ -525,7 +511,7 @@ export const Conditions: import('../sim/dex-conditions').ConditionDataTable = {
 			}
 		},
 		onWeatherModifyDamage(damage, attacker, defender, move) {
-			if (defender.effectiveWeather() !== 'primordialsea') return;
+			if (defender.hasItem('utilityumbrella')) return;
 			if (move.type === 'Water') {
 				this.debug('Rain water boost');
 				return this.chainModify(1.5);
@@ -554,11 +540,19 @@ export const Conditions: import('../sim/dex-conditions').ConditionDataTable = {
 			return 5;
 		},
 		onWeatherModifyDamage(damage, attacker, defender, move) {
-			if (move.id === 'hydrosteam' && attacker.effectiveWeather() === 'sunnyday') {
+			if (move.id === 'crystalbeam' && !attacker.hasItem('utilityumbrella')) {
 				this.debug('Sunny Day Hydro Steam boost');
 				return this.chainModify(1.5);
 			}
-			if (defender.effectiveWeather() !== 'sunnyday') return;
+			if (move.id === 'lightray' && !attacker.hasItem('utilityumbrella')) {
+				this.debug('Sunny Day Hydro Steam boost');
+				return this.chainModify(1.5);
+			}
+			if (move.id === 'hydrosteam' && !attacker.hasItem('utilityumbrella')) {
+				this.debug('Sunny Day Hydro Steam boost');
+				return this.chainModify(1.5);
+			}
+			if (defender.hasItem('utilityumbrella')) return;
 			if (move.type === 'Fire') {
 				this.debug('Sunny Day fire boost');
 				return this.chainModify(1.5);
@@ -577,8 +571,8 @@ export const Conditions: import('../sim/dex-conditions').ConditionDataTable = {
 			}
 		},
 		onImmunity(type, pokemon) {
-			if (pokemon.effectiveWeather() !== 'sunnyday') return;
-			if (type === 'frz') return false;
+			if (pokemon.hasItem('utilityumbrella')) return;
+			if (type === 'frb') return false;
 		},
 		onFieldResidualOrder: 1,
 		onFieldResidual() {
@@ -603,9 +597,9 @@ export const Conditions: import('../sim/dex-conditions').ConditionDataTable = {
 			}
 		},
 		onWeatherModifyDamage(damage, attacker, defender, move) {
-			if (defender.effectiveWeather() !== 'desolateland') return;
+			if (defender.hasItem('utilityumbrella')) return;
 			if (move.type === 'Fire') {
-				this.debug('Desolate Land fire boost');
+				this.debug('Sunny Day fire boost');
 				return this.chainModify(1.5);
 			}
 		},
@@ -613,8 +607,7 @@ export const Conditions: import('../sim/dex-conditions').ConditionDataTable = {
 			this.add('-weather', 'DesolateLand', '[from] ability: ' + effect.name, `[of] ${source}`);
 		},
 		onImmunity(type, pokemon) {
-			if (pokemon.effectiveWeather() !== 'desolateland') return;
-			if (type === 'frz') return false;
+			if (pokemon.hasItem('utilityumbrella')) return;
 		},
 		onFieldResidualOrder: 1,
 		onFieldResidual() {
@@ -655,6 +648,12 @@ export const Conditions: import('../sim/dex-conditions').ConditionDataTable = {
 		onFieldResidual() {
 			this.add('-weather', 'Sandstorm', '[upkeep]');
 			if (this.field.isWeather('sandstorm')) this.eachEvent('Weather');
+		},
+		onWeatherModifyDamage(damage, attacker, defender, move) {
+			if (move.id === 'lightray' && !attacker.hasItem('utilityumbrella')) {
+				this.debug('Sandstorm Lightray boost');
+				return this.chainModify(0.5);
+			}
 		},
 		onWeather(target) {
 			this.damage(target.baseMaxhp / 16);
@@ -707,6 +706,12 @@ export const Conditions: import('../sim/dex-conditions').ConditionDataTable = {
 		onModifyDef(def, pokemon) {
 			if (pokemon.hasType('Ice') && this.field.isWeather('snowscape')) {
 				return this.modify(def, 1.5);
+			}
+		},
+		onWeatherModifyDamage(damage, attacker, defender, move) {
+			if (move.id === 'lightray' && !attacker.hasItem('utilityumbrella')) {
+				this.debug('Sandstorm Lightray boost');
+				return this.chainModify(0.5);
 			}
 		},
 		onFieldStart(field, source, effect) {
@@ -879,67 +884,6 @@ export const Conditions: import('../sim/dex-conditions').ConditionDataTable = {
 			return [type];
 		},
 	},
-	zacian: {
-		name: 'Zacian',
-		onBattleStart(pokemon) {
-			if (pokemon.item !== 'rustedsword') return;
-			const rawSpecies = this.dex.species.get('Zacian-Crowned');
-			const species = pokemon.setSpecies(rawSpecies);
-			if (!species) return;
-			pokemon.baseSpecies = rawSpecies;
-			pokemon.details = pokemon.getUpdatedDetails();
-			pokemon.setAbility(species.abilities['0'], null, null, true);
-			pokemon.baseAbility = pokemon.ability;
-
-			const ironHeadIndex = pokemon.baseMoves.indexOf('ironhead');
-			if (ironHeadIndex >= 0) {
-				const move = this.dex.moves.get('behemothblade');
-				const pp = this.calculatePP(move, pokemon.ppUps[ironHeadIndex]);
-				pokemon.baseMoveSlots[ironHeadIndex] = {
-					move: move.name,
-					id: move.id,
-					pp,
-					maxpp: pp,
-					target: move.target,
-					disabled: false,
-					disabledSource: '',
-					used: false,
-				};
-				pokemon.moveSlots = pokemon.baseMoveSlots.slice();
-			}
-		},
-	},
-	zamazenta: {
-		name: 'Zamazenta',
-		onBattleStart(pokemon) {
-			if (pokemon.item !== 'rustedshield') return;
-			const rawSpecies = this.dex.species.get('Zamazenta-Crowned');
-			const species = pokemon.setSpecies(rawSpecies);
-			if (!species) return;
-			pokemon.baseSpecies = rawSpecies;
-			pokemon.details = pokemon.getUpdatedDetails();
-			pokemon.setAbility(species.abilities['0'], null, null, true);
-			pokemon.baseAbility = pokemon.ability;
-
-			const ironHeadIndex = pokemon.baseMoves.indexOf('ironhead');
-			if (ironHeadIndex >= 0) {
-				const move = this.dex.moves.get('behemothbash');
-				const pp = this.calculatePP(move, pokemon.ppUps[ironHeadIndex]);
-				pokemon.baseMoveSlots[ironHeadIndex] = {
-					move: move.name,
-					id: move.id,
-					pp,
-					maxpp: pp,
-					target: move.target,
-					disabled: false,
-					disabledSource: '',
-					used: false,
-				};
-				pokemon.moveSlots = pokemon.baseMoveSlots.slice();
-			}
-		},
-	},
-
 	rolloutstorage: {
 		name: 'rolloutstorage',
 		duration: 2,

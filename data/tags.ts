@@ -61,6 +61,10 @@ export const Tags: { [id: IDEntry]: TagData } = {
 		name: "Z-Move",
 		moveFilter: move => !!move.isZ,
 	},
+	exploding: {
+		name: "Exploding",
+		moveFilter: move => 'exploding' in move.flags,
+	},
 	maxmove: {
 		name: "Max Move",
 		moveFilter: move => !!move.isMax,
@@ -82,18 +86,28 @@ export const Tags: { [id: IDEntry]: TagData } = {
 	},
 	fist: {
 		name: "Fist",
-		desc: "Boosted 1.2x by Iron Fist.",
+		desc: "Boosted 1.3x by Iron Fist.",
 		moveFilter: move => 'punch' in move.flags,
 	},
 	pulse: {
 		name: "Pulse",
-		desc: "Boosted 1.5x by Mega Launcher.",
+		desc: "Boosted 1.3x by Mega Launcher.",
 		moveFilter: move => 'pulse' in move.flags,
+	},
+	kick: {
+		name: "Kick",
+		desc: "Boosted 1.3x by Starman.",
+		moveFilter: move => 'kick' in move.flags,
 	},
 	bite: {
 		name: "Bite",
-		desc: "Boosted 1.5x by Strong Jaw.",
+		desc: "Boosted 1.3x by Strong Jaw.",
 		moveFilter: move => 'bite' in move.flags,
+	},
+	light: {
+		name: "Light",
+		desc: "Boosted 1.3x by Illuminate.",
+		moveFilter: move => 'light' in move.flags,
 	},
 	ballistic: {
 		name: "Ballistic",
